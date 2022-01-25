@@ -1,0 +1,35 @@
+apiVersion: v2
+description: Helm chart to deploy Service NG
+name:app-main
+version: 0.0.1
+dependencies:
+- name: service-a
+  version: 0.1.014bf574
+  repository: '@helm-golden'
+  tags:
+  - application
+  enabled: true
+- name: service-b
+  version: 0.1.014bf575
+  repository: '@helm-golden'
+  tags:
+  - application
+  enabled: true
+- name: service-c
+  version: 0.1.014bf475
+  repository: '@helm-golden'
+  tags:
+  - application
+  enabled: true
+- name: service-d
+  version: 0.1.024bf575
+  repository: '@helm-golden'
+  tags:
+  - application
+  enabled: true
+- name: service-e
+  version: 0.1.014bf559
+  repository: '@helm-golden'
+  tags:
+  - application
+  enabled: true
