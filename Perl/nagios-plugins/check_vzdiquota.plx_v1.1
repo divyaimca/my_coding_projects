@@ -1,0 +1,86 @@
+#!/usr/bin/perl
+use warnings;
+########################################################################
+# 
+# Version : 1.1 
+# Date : 29/12/2012
+# 
+# Purpose : Nagios plugin to monitor the Virtuzoo container disk and 
+#       Inode limit both
+#
+# Usage : It takes 2 arguments, Warning ånd Critical in percentage, If the
+# 	  inode usage  in the container crosses the warning limit it will 
+# 	  show WARN and if crosses Critical limit show CRIT with Redcolour
+# 	  
+# 	   
+##########################################################################
+
+
+my $REQPARAM = 2;
+my $exit;
+my $warn = sprintf("%.3f",$ARGV[0]);
+my $crit = sprintf("%.3f",$ARGV[1]); 
+
+$#ARGV +=1;
+unless ($#ARGV == $REQPARAM){
+	system "clear";
+	print "$0 requires $REQPARAM arguments\n";
+	print "Usage : $0 [Warn] [Crit]\n";
+	exit 100;
+	}
+
+if ( $warn == $crit || $warn > $crit ){
+	print "UNKNOWN: [warn] must be less than [crit]\n";
+	exit 100;
+	}
+
+my $file = "/proc/vz/vzquota";
+open (FILE,"$file") || die "Error : $!";
+while (<FILE>){
+	if (/(\d+):.*/){ our $id = $1; }
+ 
+			if (/\s+(\d[a-z]-[a-z]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/){
+				my $Dusage = $2;
+				my $Dsoftlimit = $3;
+				my $Dhardlimit = $4;
+				my $Dtime = $5;
+				my $Dexpire = $6;
+				our $Dusagep = sprintf("%.3f",100*($Dusage/$Dsoftlimit));
+			
+				our $name = `vzlist -1 $id -o name`;
+				chomp($name);
+				$name =~ s/\s+//;
+				$name =~ s/-/SERVICE-CONTAINER/; 
+				next;
+			}
+
+			if (/\s+([a-z]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/){
+		        	my $Iusage = $2;
+				my $Isoftlimit = $3;
+				my $Ihardlimit = $4;
+				my $Itime = $5;
+				my $Iexpire = $6;
+		        	our $Iusagep = sprintf("%.3f",100*($Iusage/$Isoftlimit));
+			#	print "$name -  $Dusagep  $Iusagep\n";
+				if ( $Iusagep < $warn && $Iusagep < $crit && $Dusagep < $warn && $Dusagep < $crit){
+					$exit = 0;
+					print "VZQUOTA OK : $name has used only $Iusagep% inode and $Dusagep% disk.\n";
+					next;
+				}
+				if (($Iusagep >= $warn && $Iusagep < $crit) || ($Dusagep >= $warn && $Dusagep < $crit)){
+					$exit = 1;
+					print "VZQUOTA WARN : $name  has used $Iusagep% inode and $Dusagep% disk.\n";
+					next;
+				}
+				if ( $Iusagep >= $crit || $Dusagep >= $crit ) {
+					$exit = 2;
+					print "VZQUOTA CRITICAL : $name  has used $Iusagep% inode and $Dusagep% disk.\n";
+					next;
+				}
+		
+				next;
+			}
+}
+exit($exit);
+	
+
